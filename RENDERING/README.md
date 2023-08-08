@@ -3,7 +3,7 @@
 1. What is the rendering process in a web browser?<br>
    The rendering process in a web browser is the sequence of steps that occur when a web page is loaded and displayed to the user. It involves parsing the HTML and CSS to construct the Document Object Model (DOM) and CSS Object Model (CSSOM), combining them to create the Render Tree, and finally, painting the pixels on the screen to display the content visually.
 
-2. Explain the steps involved in parsing and rendering an HTML page.
+2. Explain the steps involved in parsing and rendering an HTML page.<br>
    Parsing and rendering an HTML page involve several steps:
 
 - The browser fetches the HTML content from the server.
@@ -26,7 +26,7 @@
 - Repaint (or redraw) occurs when a part of the web page needs to be updated visually without affecting the layout. It can happen due to changes in colors, background images, or visibility of elements.
 - Reflow (or layout) occurs when there are changes to the layout of elements, such as resizing the window, adding or removing elements, or changing styles that affect the element's size or position. It is a more expensive operation than repaint as it involves recalculating the layout of affected elements and their ancestors.
 
-6. Explain the importance of optimizing CSS and JS files for rendering performance.
+6. Explain the importance of optimizing CSS and JS files for rendering performance.<br>
    Optimizing CSS and JS files is crucial for rendering performance. Smaller and well-organized CSS and JS files load faster, reducing the time needed for the rendering process. By minimizing the size of these files, the browser can parse and construct the DOM and CSSOM quicker, leading to faster rendering and a better user experience.
 
 7. What are the best practices for reducing rendering time in a web page?<br>
@@ -78,7 +78,7 @@
 - Utilizing online cross-browser testing services that allow you to test your site on various browsers and devices simultaneously.
 - Employing browser compatibility testing tools and extensions.
 
-15. Explain the concept of polyfills and their role in browser compatibility.
+15. Explain the concept of polyfills and their role in browser compatibility.<br>
     Polyfills are JavaScript code snippets or scripts that provide modern functionality to older browsers that lack support for certain features. They "fill in" the gaps and enable the browser to handle features that would otherwise be unsupported. Polyfills help developers create applications with the latest features while ensuring compatibility with older browsers, enhancing the user experience for all users.
 
     By using polyfills, developers can leverage modern technologies without excluding users on older browsers. They allow websites and web applications to gracefully degrade and provide essential functionality to a broader range of users.
@@ -103,7 +103,7 @@
 - A seamless and smooth user experience when navigating the website.
 - Better search engine ranking as page loading speed is a ranking factor.
 
-18. Explain the importance of using asynchronous loading for scripts and styles.
+18. Explain the importance of using asynchronous loading for scripts and styles.<br>
     Using asynchronous loading for scripts and styles is important because it prevents them from blocking the rendering of the web page. When scripts or styles are loaded synchronously (render-blocking), the browser must wait for them to download and execute before continuing to render the page. Asynchronous loading allows the browser to continue rendering the page while scripts and styles load in the background, improving page loading speed and user experience.
 
 19. How do you optimize CSS and JS files using minification and compression?<br>
@@ -184,7 +184,7 @@
 35. How can you use the Chrome DevTools Performance panel to identify rendering bottlenecks?<br>
     The Chrome DevTools Performance panel can help identify rendering bottlenecks by recording performance timelines. Analyze the recorded data to pinpoint areas where FPS drops, long frame times, or excessive recalculations occur.
 
-36. Explain how hardware acceleration affects FPS in webpage rendering.
+36. Explain how hardware acceleration affects FPS in webpage rendering.<br>
     Hardware acceleration leverages the device's GPU to offload rendering tasks, improving FPS and overall performance. Elements using hardware-accelerated CSS properties (e.g., `transform`, `opacity`) are rendered more efficiently, resulting in smoother animations and interactions.
 
 37. What is repaint and reflow, and how do they impact FPS?<br>
