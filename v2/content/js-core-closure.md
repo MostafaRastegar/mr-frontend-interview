@@ -1,189 +1,247 @@
-<div dir="rtl">
 
-‏شما یک متخصص ارشد فرانت‌اند هستید که در حال آماده‌سازی برای مصاحبه فنی می‌باشد.
 
-‏لطفاً سوال "Closure — کاربرد در Factory Functions و Module Pattern" را بر اساس یک چارچوب تحلیلی ۴ سطحی برای من تشریح کن. سطح پاسخ باید مختص یک توسعه‌دهنده Senior با ۶+ سال سابقه باشد که در پروژه‌های بزرگ مقیاس (Enterprise) کار کرده است.
+# Closure در JavaScript
 
-</div>
+مناسب برای مصاحبه فنی | تاریخ: 2026-07-19
 
 ---
 
-## <div dir="rtl">‏سطح ۱: تعریف و هسته فنی</div>
+## Closure چیست؟
 
-<div dir="rtl">
-
-‏**Closure** (بستار) وقتی ایجاد می‌شود که یک تابع به متغیرهای خارج از محدوده (scope) خودش — از یک تابع بیرونی — دسترسی داشته باشد، حتی پس از اتمام اجرای تابع بیرونی. این «بسته شدن» محیط لغوی (Lexical Environment) در زمان تعریف تابع داخلی اتفاق می‌افتد، نه زمان اجرا.
-
-‏### هسته در سطح موتور (V8)
-
-‏در سطح پیاده‌سازی V8:
-
-‏1. هر تابع یک [[Scope]] internal slot دارد که اشاره‌گر به **Lexical Environment** زمان تعریف را نگه می‌دارد.
-‏2. وقتی تابع بیرونی فراخوانی می‌شود، V8 یک **Execution Context** برای آن می‌سازد که شامل **VariableEnvironment** (برای var) و **LexicalEnvironment** (برای let/const) است.
-‏3. اگر تابع داخلی به متغیرهای تابع بیرونی reference داشته باشد، V8 آن متغیرها را در **ScopeInfo** ذخیره کرده و در **ContextExtension** قرار می‌دهد — این یعنی متغیر به Heap منتقل می‌شود (نه Stack)، چون پس از pop شدن Execution Context باید زنده بماند.
-‏4. DevTools در Memory tab این Closure objects را به صورت `[[Scopes]]` در waterfall نمایش می‌دهد.
-
-</div>
+یک **Closure** ترکیب یک تابع با محیط (environment) آن تابع است. به زبان ساده: وقتی یک تابع داخل تابع دیگری تعریف می‌شود، تابع داخلی به متغیرهای تابع بیرونی دسترسی دارد — حتی بعد از اینکه تابع بیرونی اجرایش تمام شده باشد.
 
 ```javascript
 function outer() {
-  let x = 10;          // → Heap allocation چون inner به آن reference دارد
+  const message = "سلام";
+  
   function inner() {
-    debugger;           // Scopes panel: Closure (outer) { x: 10 }
-    return x++;
+    console.log(message); // inner به message دسترسی دارد
   }
+  
   return inner;
 }
+
 const fn = outer();
-console.log(fn()); // 10
-console.log(fn()); // 11
+fn(); // "سلام"
 ```
 
-<div dir="rtl">
-
-‏**نکته ظریف:** اگر تابع داخلی فقط متغیرهای global را بخواند و هیچ متغیری از تابع بیرونی reference نکند، Closure تشکیل **نمی‌شود** (V8 آن را بهینه می‌کند). این را با چک کردن `[[Scopes]]` در DevTools می‌توان دید.
-
-</div>
+چرا این مهم است؟ تابع `outer` تمام شده و از Call Stack خارج شده، اما متغیر `message** هنوز در حافظه زنده است و `inner` می‌تواند به آن دسترسی داشته باشد. چون `inner` یک Closure روی `message` دارد.
 
 ---
 
-## <div dir="rtl">‏سطح ۲: معیارهای انتخاب و تصمیم‌گیری</div>
+## چرا Closure ایجاد می‌شود؟ (مکانیزم دقیق)
 
-<div dir="rtl">
+وقتی یک تابع در JavaScript ایجاد می‌شود، یک **Lexical Environment** دارد:
+- **Local Scope**: متغیرهای داخل خود تابع
+- **Outer Environment**: reference به محیط بیرونی (جایی که تابع تعریف شده، نه جایی که فراخوانی می‌شود)
 
-‏به عنوان Senior، Closure را نه صرفاً به خاطر زیبایی، بلکه وقتی Trade-offها قابل قبول است انتخاب می‌کنم.
+وقتی تابعی return می‌شود و جایی ذخیره می‌شود، موتور JavaScript هیچ‌کدام از این متغیرها را پاک نمی‌کند. چون تابع بازگشت‌شده هنوز به آن‌ها reference دارد.
 
-</div>
-
-<div dir="ltr">
-
-| **معیار** | **مزیت Closure** | **هزینه / Trade-off** |
-|-----------|------------------|----------------------|
-| **Memory** | داده‌ها تا زمانی که function reference زنده است در Heap می‌مانند — برای cache مؤثر است | اگر اشتباه استفاده شود **Memory Leak** قطعی است (closure scope در Heap نگه داشته می‌شود حتی اگر فقط یک متغیر از ۵۰ متغیر نیاز باشد) |
-| **Encapsulation** | تنها مکانیسم واقعی Private State در JS قبل از ES2022 Class Fields | با `WeakMap` یا `Symbol` هم می‌شود، اما Closure ساده‌ترین راه است |
-| **Performance** | دسترسی به متغیرهای Closure یک Property Lookup اضافه دارد (کمتر از ۱٪ تأثیر) | Closure scope زنجیره‌ای (nested closures) می‌تواند Lookup را O(n) کند — حداکثر عمق توصیه‌شده: ۳ سطح |
-| **Bundle Size** | بدون وابستگی خارجی | Closure scope تمام متغیرهای reference شده را در خروجی minified نگه می‌دارد (قابل Tree-shaking نیست) |
-| **Debugging** | DevTools دقیقاً Closure scope را نمایش می‌دهد | خطاهای ناشی از stale closure (مثل `var` در حلقه) سخت‌ترین خطاها برای Debug هستند |
-
-</div>
-
-<div dir="rtl">
-
-‏### قانون سرانگشتی
-
-‏- Closure برای **State Encapsulation** (مثل `useState`، `useRef`) عالی است
-‏- Closure برای **Data-heavy scope** (مثل آرایه بزرگ در تابع بیرونی) مناسب نیست — بهتر است آن scope را Destructure کنید فقط متغیرهای مورد نیاز را نگه دارید
-
-</div>
+```
+outer() اجرا می‌شود
+┌─────────────────────────────┐
+│ Lexical Environment:        │
+│   message = "سلام"          │
+│   inner = [function ref]    │
+│   outerEnv = → Global      │
+└──────────┬──────────────────┘
+           │
+           │ return inner
+           ↓
+┌─────────────────────────────┐
+│ fn = inner (با closure)     │
+│   ← هنوز به message وصل است│
+└─────────────────────────────┘
+```
 
 ---
 
-## <div dir="rtl">‏سطح ۳: چالش واقعی در پروژه‌های بزرگ</div>
+## کاربردهای اصلی Closure در مصاحبه
 
-<div dir="rtl">
-
-‏### سناریو: Memory Leak پنهان در Module Pattern با Singleton
-
-‏یک سناریوی واقعی در پروژه‌ای با معماری Micro-frontend (هر MF یک Module Pattern داشت):
-
-‏تیمی یک **Shared Registry** با Module Pattern ساخته بود که تمام پلاگین‌ها را کش می‌کرد:
-
-</div>
+### ۱. داده خصوصی (Private State / Encapsulation)
 
 ```javascript
-const PluginRegistry = (() => {
-  const registry = new Map();   // ← این هیچوقت GC نمی‌شد
-  const metadata = new Map();   // ← این هم
-  
+function createCounter() {
+  let count = 0; // خصوصی — از بیرون دسترسی مستقیم نداری
+
   return {
-    register(name, plugin) {
-      registry.set(name, plugin);
-      metadata.set(name, { registeredAt: Date.now(), status: 'active' });
-      return () => unregister(name); // ← closure روی name, registry, metadata
-    }
+    increment: () => ++count,
+    decrement: () => --count,
+    getCount: () => count,
   };
-})();
+}
+
+const counter = createCounter();
+counter.increment();
+counter.increment();
+console.log(counter.getCount()); // 2
+console.log(counter.count);       // undefined (خصوصی!)
 ```
 
-<div dir="rtl">
-
-‏**مشکل:** با هر بار Hot Reload در توسعه، پلاگین‌های قدیمی Registry را رها نمی‌کردند چون `metadata` سلول‌های قبلی را نگه می‌داشت و هیچ GC‌ای نمی‌توانست آن‌ها را جمع کند — حافظه هر ۳۰ دقیقه ۲۰۰MB افزایش می‌یافت.
-
-‏**راه‌حل Production:**
-
-</div>
-<div dir="ltr">
+### ۲. Function Factory
 
 ```javascript
-// x از WeakMap به جای Map استفاده کردیم
-const PluginRegistry = (() => {
-  // x حالا اگر plugin از بین برود، WeakMap اجازه GC می‌دهد
-  const registry = new WeakMap();   // کلید: plugin object, مقدار: metadata
-  /* x و metadata مستقیماً در registry نیست */
-  
+function createMultiplier(factor) {
+  return function (number) {
+    return number * factor;
+  };
+}
+
+const double = createMultiplier(2);
+const triple = createMultiplier(3);
+
+console.log(double(5));  // 10
+console.log(triple(5));  // 15
+```
+
+هر بار `createMultiplier` فراخوانی می‌شود، یک Closure جدید با `factor` خاص خودش ساخته می‌شود.
+
+### ۳. Debounce (کاربرد واقعی در پروژه)
+
+```javascript
+function debounce(fn, delay) {
+  let timerId;
+
+  return function (...args) {
+    clearTimeout(timerId);
+    timerId = setTimeout(() => {
+      fn.apply(this, args);
+    }, delay);
+  };
+}
+
+const search = debounce((query) => {
+  console.log(`جستجو: ${query}`);
+}, 300);
+
+// هر بار search فراخوانی شود، timerId قبلی را پاک می‌کند
+```
+
+### ۴. Loop Problem (سوال رایج مصاحبه)
+
+```javascript
+// مشکل经典的 — var در loop
+for (var i = 0; i < 3; i++) {
+  setTimeout(() => console.log(i), 100);
+}
+// خروجی: 3 → 3 → 3 (نه 0 → 1 → 2)
+
+// راه‌حل ۱: let (block scope)
+for (let i = 0; i < 3; i++) {
+  setTimeout(() => console.log(i), 100);
+}
+// خروجی: 0 → 1 → 2
+
+// راه‌حل ۲: IIFE با closure
+for (var i = 0; i < 3; i++) {
+  (function (j) {
+    setTimeout(() => console.log(j), 100);
+  })(i);
+}
+// خروجی: 0 → 1 → 2
+```
+
+تفاوت `var` و `let` در loop: `var` function-scoped است و همه closureها به یک متغیر `i` وصل‌اند. `let` block-scoped است و هر iteration یک binding جدید می‌سازد.
+
+---
+
+## Module Pattern (سناریوی واقعی)
+
+```javascript
+const PaymentModule = (function () {
+  let balance = 0; // خصوصی
+  const transactions = []; // خصوصی
+
   return {
-    register(name, plugin) {
-      const unregisterFn = () => {
-        // x فقط reference plugin از registry پاک می‌شود
-        registry.delete(plugin);
-      };
-      registry.set(plugin, { name, registeredAt: Date.now() });
-      return unregisterFn; // closure روی plugin و registry — نه metadata
-    }
+    deposit(amount) {
+      balance += amount;
+      transactions.push({ type: 'deposit', amount, date: Date.now() });
+    },
+    getBalance() {
+      return balance;
+    },
+    getHistory() {
+      return [...transactions]; // کپی — نه reference اصلی
+    },
   };
 })();
+
+PaymentModule.deposit(100);
+PaymentModule.deposit(50);
+console.log(PaymentModule.getBalance()); // 150
 ```
-</div>
 
-<div dir="rtl">
-
-‏**نکته کلیدی که Junior نمی‌داند:** 
-‏۱. Closure تمام متغیرهای تابع بیرونی را در Scope خود نگه می‌دارد، **حتی متغیرهایی که استفاده نمی‌شوند** — این «Shared Scope» معضل است.
-‏۲. راه‌حل: **Function-scoped variable** را با **Block-scoped** (let/const) بشکنید — فقط متغیرهایی که نیاز دارید در یک بلاک جدا تعریف کنید.
-
-</div>
+این الگو قبل از ES6 Modules رایج بود. امروزه از ES Modules استفاده می‌شود، اما درک این الگو نشان‌دهنده درک عمیق Closure است.
 
 ---
 
-## <div dir="rtl">‏سطح ۴: عدم استفاده و راه‌کار جایگزین</div>
+## Closure و Memory
 
-<div dir="rtl">
+هر closure یک reference به متغیرهای محیط بیرونی دارد. اگر closure به متغیر بزرگی وصل باشد، آن متغیر تا زمانی که closure زنده است در حافظه می‌ماند.
 
-‏اگر React/Next.js نبود و مجبور بودم از **Vue.js 3 + Pinia** یا **Angular 18 + Signals** استفاده کنم:
+```javascript
+function processData() {
+  const hugeData = new Array(1000000).fill('x'); // ۱ میلیون آیتم
+  
+  return function summarize() {
+    return hugeData.length; // hugeData همیشه در حافظه می‌ماند
+  };
+}
 
-‏### مقایسه جایگزین‌ها
+const summarize = processData(); // hugeData پاک نمی‌شود
+console.log(summarize()); // 1000000
+```
 
-</div>
+**نکته مهم:** اگر واقعاً فقط به `length` نیاز دارید، مقدار را در closure ذخیره کنید نه کل آرایه:
 
-<div dir="ltr">
+```javascript
+function processData() {
+  const hugeData = new Array(1000000).fill('x');
+  const length = hugeData.length; // فقط عدد — حافظه کمتر
+  // hugeData حالا می‌تواند GC شود
 
-| **نیاز** | **راه‌حل با Closure (JS ساده)** | **راه‌حل در Vue/Angular** |
-|----------|----------------------------------|---------------------------|
-| Private State در کامپوننت | `useRef` یا `useMemo` با Closure | Vue: `ref()` داخل `<script setup>` (ماکروی کامپایلر) — Angular: `signal()` |
-| Event Handler با state تازه | `useCallback` با Closure | Vue: template ref — Angular: `(click)` binding |
-| Shared State بین کامپوننت‌ها | Context + Closure | Vue: Pinia (state = `reactive()` پشت پرده) — Angular: Signals + NgRx |
-| Custom Hook / Composition | Closure + Hooks | Vue: Composables (دقیقاً closure) — Angular: Injectable services |
-
-</div>
-
-<div dir="rtl">
-
-‏### Next.js vs Vue.js — کدام برتری دارد؟
-
-‏برای این نیاز خاص **(State Encapsulation با Closure)**، Next.js و Vue.js تفاوت زیادی ندارند چون هر دو از Closure استفاده می‌کنند. اما:
-
-‏- **Next.js** نیاز به `'use client'` و Hooks دارد — یک Indirection اضافه
-‏- **Vue 3 Composition API** Closure را مستقیماً در `setup()` استفاده می‌کند — transparent
-‏- **Angular Signals** از `WeakRef` و `ReactiveNode` در پشت پرده استفاده می‌کند — abstraction بالا
-
-‏**نتیجه:** برای State Encapsulation ساده، Vue 3 با Composition API **شفاف‌ترین** است. اما برای Enterprise Scale با Server Components، Next.js به خاطر **RSC Payload** و **Serialization** برتری دارد چون Closure در Server Components مجاز نیست و Developer را مجبور به فکر کردن درباره مرز سرور/کلاینت می‌کند — که در مقیاس بزرگ از Leak جلوگیری می‌کند.
-
-</div>
+  return function summarize() {
+    return length;
+  };
+}
+```
 
 ---
 
-<div dir="rtl">
+## سوالات رایج مصاحبه
 
-‏> **پس از تحویل این مبحث، منتظر تأیید من بمان. پس از تأیید، طبق دستورات قسمت Automation Instructions پیش برو و سپس متوقف شو.**
+| سوال | پاسخ کوتاه |
+|------|------------|
+| Closure چیست؟ | تابع + محیط لغوی آن. تابعی که به متغیرهای scope بیرونی‌اش دسترسی دارد حتی بعد از اتمام اجرای scope بیرونی. |
+| چه چیزی در closure نگه داشته می‌شود؟ | Reference به متغیرها — نه کپی ارزش‌ها. اگر متغیر تغییر کند، closure مقدار جدید را می‌بیند. |
+| تفاوت closure با scope چیست؟ | Scope محدوده دسترسی است. Closure وقتی ایجاد می‌شود که تابعی از scope خودش خارج شود و هنوز به متغیرهای آن scope دسترسی داشته باشد. |
+| Closure چه تأثیری بر memory دارد؟ | متغیرهایی که به آن‌ها reference دارد تا زمان حیات closure در حافظه می‌مانند. می‌تواند memory leak ایجاد کند اگر بی‌احتیاط باشید. |
+| `bind` چگونه با closure کار می‌کند؟ | `bind` یک تابع جدید برمی‌گرداند که `this` و partial arguments را در خود ذخیره کرده — این خودش closure است. |
 
-</div>
+---
+
+## پیاده‌سازی دستی bind (سؤال مصاحبه‌ای معروف)
+
+```javascript
+Function.prototype.myBind = function (context, ...boundArgs) {
+  const originalFn = this;
+
+  return function (...callArgs) {
+    return originalFn.apply(context, [...boundArgs, ...callArgs]);
+  };
+};
+
+function greet(greeting, punctuation) {
+  return `${greeting}, ${this.name}${punctuation}`;
+}
+
+const obj = { name: "علی" };
+const bound = greet.myBind(obj, "سلام");
+console.log(bound("!")); // "سلام، علی!"
+```
+
+`originalFn` و `context` و `boundArgs` همه در closure ذخیره شده‌اند و وقتی `bound` فراخوانی می‌شود، به آن‌ها دسترسی دارد.
+
+---
+
+> **پس از تحویل این مبحث، منتظر تأیید من بمان. پس از تأیید، طبق دستورات قسمت Automation Instructions پیش برو و سپس متوقف شو.**

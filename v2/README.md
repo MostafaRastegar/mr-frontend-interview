@@ -23,6 +23,7 @@
 8. [📄](content/js-core-array-methods.md) `Array` متدهای پیشرفته (`map`, `filter`, `reduce`, `some`, `every`, `flatMap`)
 
 **سطح ⭐⭐ (مهم و نشان‌دهنده‌ی تسلط بالا):**
+
 9. [📄](content/js-core-symbol.md) `Symbol` و کاربرد آن در ایجاد کلیدهای خصوصی
 10. [📄](content/js-core-weakmap-weakset.md) `WeakMap` و `WeakSet` (تفاوت با Map/Set و مدیریت حافظه)
 11. [📄](content/js-core-generator-iterator.md) `Generator Functions` و `Iterators`
